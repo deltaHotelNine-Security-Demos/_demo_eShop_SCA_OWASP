@@ -1,5 +1,5 @@
 # OWASP
-name: eShopOnWeb Build and Test
+name: OWASP Dependency Check
 
 on: [push, pull_request, workflow_dispatch]
 
