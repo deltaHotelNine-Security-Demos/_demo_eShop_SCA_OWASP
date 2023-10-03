@@ -1,0 +1,46 @@
+name: eShopOnWeb Build and Test
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build:
+
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '7.0.x'
+        include-prerelease: true
+
+    - name: Build with dotnet
+      run: dotnet build ./eShopOnWeb.sln --configuration Release
+    
+    - name: Test with dotnet
+      run: dotnet test ./eShopOnWeb.sln --configuration Release
+
+    - name: Publish dotnet
+      run: dotnet publish ./src/Web/Web.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
+
+    #OWASP Self Hosted
+    - name: Setup Java
+      uses: actions/setup-java@v2
+      with:
+        distribution: 'adopt'
+        java-version: '11'
+
+    - name: Run OWASP Dependency-Check
+      run: |
+        VERSION=$(curl -s https://jeremylong.github.io/DependencyCheck/current.txt)
+        curl -Ls "https://github.com/jeremylong/DependencyCheck/releases/download/v$VERSION/dependency-check-$VERSION-release.zip" --output dependency-check.zip
+        unzip dependency-check.zip
+        cd dependency-check/bin
+        ./dependency-check.sh --out . --scan ${{env.DOTNET_ROOT}}/myapp
+
+    - name: Upload OWASP Dependency-Check Report
+      uses: actions/upload-artifact@master
+      with:
+        name: dependency-check-report
+        path: dependency-check/bin/dependency-check-report.html
